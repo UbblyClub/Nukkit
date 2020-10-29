@@ -3153,12 +3153,14 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                                     this.server.getPluginManager().callEvent(interactEvent);
 
+                                    if (isSpectator()) interactEvent.setCancelled();
+
                                     if (interactEvent.isCancelled()) {
                                         this.inventory.sendHeldItem(this);
                                         break packetswitch;
                                     }
 
-                                    if (item.onClickAir(this, directionVector) && !isSpectator()) {
+                                    if (item.onClickAir(this, directionVector)) {
                                         if (this.isSurvival()) {
                                             this.inventory.setItemInHand(item);
                                         }
