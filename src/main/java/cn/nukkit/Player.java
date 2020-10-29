@@ -2418,6 +2418,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                             Block target = this.level.getBlock(pos);
                             PlayerInteractEvent playerInteractEvent = new PlayerInteractEvent(this, this.inventory.getItemInHand(), target, face, target.getId() == 0 ? Action.LEFT_CLICK_AIR : Action.LEFT_CLICK_BLOCK);
                             this.getServer().getPluginManager().callEvent(playerInteractEvent);
+
+                            if (isSpectator()) playerInteractEvent.setCancelled();
+
                             if (playerInteractEvent.isCancelled()) {
                                 this.inventory.sendHeldItem(this);
                                 break;
