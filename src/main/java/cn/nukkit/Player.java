@@ -2942,11 +2942,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     }
                     break;
                 case ProtocolInfo.INVENTORY_TRANSACTION_PACKET:
-                    if (this.isSpectator()) {
-                        this.sendAllInventories();
-                        break;
-                    }
-
                     InventoryTransactionPacket transactionPacket = (InventoryTransactionPacket) packet;
 
                     List<InventoryAction> actions = new ArrayList<>();
@@ -3020,6 +3015,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                     switch (transactionPacket.transactionType) {
                         case InventoryTransactionPacket.TYPE_NORMAL:
+                            if (this.isSpectator()) {
+                                this.sendAllInventories();
+                                break;
+                            }
+
                             InventoryTransaction transaction = new InventoryTransaction(this, actions);
 
                             if (!transaction.execute()) {
@@ -3031,6 +3031,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                             break packetswitch;
                         case InventoryTransactionPacket.TYPE_MISMATCH:
+                            if (this.isSpectator()) {
+                                this.sendAllInventories();
+                                break;
+                            }
+
                             if (transactionPacket.actions.length > 0) {
                                 this.server.getLogger().debug("Expected 0 actions for mismatch, got " + transactionPacket.actions.length + ", " + Arrays.toString(transactionPacket.actions));
                             }
@@ -3046,6 +3051,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                             int type = useItemData.actionType;
                             switch (type) {
                                 case InventoryTransactionPacket.USE_ITEM_ACTION_CLICK_BLOCK:
+                                    if (this.isSpectator()) {
+                                        this.sendAllInventories();
+                                        break;
+                                    }
+
                                     // Remove if client bug is ever fixed
                                     boolean spamBug = (lastRightClickPos != null && System.currentTimeMillis() - lastRightClickTime < 100.0 && blockVector.distanceSquared(lastRightClickPos) < 0.00001);
                                     lastRightClickPos = blockVector.asVector3();
@@ -3088,6 +3098,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                                     this.level.sendBlocks(new Player[]{this}, new Block[]{target, block}, UpdateBlockPacket.FLAG_ALL_PRIORITY);
                                     break packetswitch;
                                 case InventoryTransactionPacket.USE_ITEM_ACTION_BREAK_BLOCK:
+                                    if (this.isSpectator()) {
+                                        this.sendAllInventories();
+                                        break;
+                                    }
+
                                     if (!this.spawned || !this.isAlive()) {
                                         break packetswitch;
                                     }
@@ -3143,7 +3158,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                                         break packetswitch;
                                     }
 
-                                    if (item.onClickAir(this, directionVector)) {
+                                    if (item.onClickAir(this, directionVector) && !isSpectator()) {
                                         if (this.isSurvival()) {
                                             this.inventory.setItemInHand(item);
                                         }
@@ -3169,6 +3184,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                             }
                             break;
                         case InventoryTransactionPacket.TYPE_USE_ITEM_ON_ENTITY:
+                            if (this.isSpectator()) {
+                                this.sendAllInventories();
+                                break;
+                            }
+
                             UseItemOnEntityData useItemOnEntityData = (UseItemOnEntityData) transactionPacket.transactionData;
 
                             Entity target = this.level.getEntity(useItemOnEntityData.entityRuntimeId);
@@ -3294,6 +3314,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                             }
                             break;
                         default:
+                            if (this.isSpectator()) {
+                                this.sendAllInventories();
+                                break;
+                            }
+
                             this.inventory.sendContents(this);
                             break;
                     }
