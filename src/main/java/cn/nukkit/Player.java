@@ -3085,11 +3085,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     }
                     break;
                 case ProtocolInfo.INVENTORY_TRANSACTION_PACKET:
-                    if (this.isSpectator()) {
-                        this.sendAllInventories();
-                        break;
-                    }
-
                     InventoryTransactionPacket transactionPacket = (InventoryTransactionPacket) packet;
 
                     List<InventoryAction> actions = new ArrayList<>();
@@ -3118,85 +3113,91 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         actions.add(a);
                     }
 
-                    if (transactionPacket.isCraftingPart) {
-                        if (this.craftingTransaction == null) {
-                            this.craftingTransaction = new CraftingTransaction(this, actions);
-                        } else {
-                            for (InventoryAction action : actions) {
-                                this.craftingTransaction.addAction(action);
-                            }
-                        }
-
-                        if (this.craftingTransaction.getPrimaryOutput() != null && this.craftingTransaction.canExecute()) {
-                            //we get the actions for this in several packets, so we can't execute it until we get the result
-
-                            if (this.craftingTransaction.execute()) {
-                                Sound sound = null;
-                                switch (craftingType) {
-                                    case CRAFTING_STONECUTTER:
-                                        sound = Sound.BLOCK_STONECUTTER_USE;
-                                        break;
-                                    case CRAFTING_GRINDSTONE:
-                                        sound = Sound.BLOCK_GRINDSTONE_USE;
-                                        break;
-                                    case CRAFTING_CARTOGRAPHY:
-                                        sound = Sound.BLOCK_CARTOGRAPHY_TABLE_USE;
-                                        break;
+                    if (!isSpectator()) {
+                        if (transactionPacket.isCraftingPart) {
+                            if (this.craftingTransaction == null) {
+                                this.craftingTransaction = new CraftingTransaction(this, actions);
+                            } else {
+                                for (InventoryAction action : actions) {
+                                    this.craftingTransaction.addAction(action);
                                 }
+                            }
 
-                                if (sound != null) {
-                                    Collection<Player> players = level.getChunkPlayers(getChunkX(), getChunkZ()).values();
-                                    players.remove(this);
-                                    if (!players.isEmpty()) {
-                                        level.addSound(this, sound, 1f, 1f, players);
+                            if (this.craftingTransaction.getPrimaryOutput() != null && this.craftingTransaction.canExecute()) {
+                                //we get the actions for this in several packets, so we can't execute it until we get the result
+
+                                if (this.craftingTransaction.execute()) {
+                                    Sound sound = null;
+                                    switch (craftingType) {
+                                        case CRAFTING_STONECUTTER:
+                                            sound = Sound.BLOCK_STONECUTTER_USE;
+                                            break;
+                                        case CRAFTING_GRINDSTONE:
+                                            sound = Sound.BLOCK_GRINDSTONE_USE;
+                                            break;
+                                        case CRAFTING_CARTOGRAPHY:
+                                            sound = Sound.BLOCK_CARTOGRAPHY_TABLE_USE;
+                                            break;
+                                    }
+
+                                    if (sound != null) {
+                                        Collection<Player> players = level.getChunkPlayers(getChunkX(), getChunkZ()).values();
+                                        players.remove(this);
+                                        if (!players.isEmpty()) {
+                                            level.addSound(this, sound, 1f, 1f, players);
+                                        }
                                     }
                                 }
+                                this.craftingTransaction = null;
                             }
-                            this.craftingTransaction = null;
-                        }
 
-                        return;
-                    } else if (transactionPacket.isEnchantingPart) {
-                        if (this.enchantTransaction == null) {
-                            this.enchantTransaction = new EnchantTransaction(this, actions);
-                        } else {
-                            for (InventoryAction action : actions) {
-                                this.enchantTransaction.addAction(action);
+                            return;
+                        } else if (transactionPacket.isEnchantingPart) {
+                            if (this.enchantTransaction == null) {
+                                this.enchantTransaction = new EnchantTransaction(this, actions);
+                            } else {
+                                for (InventoryAction action : actions) {
+                                    this.enchantTransaction.addAction(action);
+                                }
                             }
-                        }
-                        if (this.enchantTransaction.canExecute()) {
-                            this.enchantTransaction.execute();
-                            this.enchantTransaction = null;
-                        }
-                        return;
-                    } else if (this.craftingTransaction != null) {
-                        if (craftingTransaction.checkForCraftingPart(actions)) {
-                            for (InventoryAction action : actions) {
-                                craftingTransaction.addAction(action);
+                            if (this.enchantTransaction.canExecute()) {
+                                this.enchantTransaction.execute();
+                                this.enchantTransaction = null;
                             }
                             return;
-                        } else {
-                            this.server.getLogger().debug("Got unexpected normal inventory action with incomplete crafting transaction from " + this.getName() + ", refusing to execute crafting");
-                            this.removeAllWindows(false);
-                            this.sendAllInventories();
-                            this.craftingTransaction = null;
-                        }
-                    } else if (this.enchantTransaction != null) {
-                        if (enchantTransaction.checkForEnchantPart(actions)) {
-                            for (InventoryAction action : actions) {
-                                enchantTransaction.addAction(action);
+                        } else if (this.craftingTransaction != null) {
+                            if (craftingTransaction.checkForCraftingPart(actions)) {
+                                for (InventoryAction action : actions) {
+                                    craftingTransaction.addAction(action);
+                                }
+                                return;
+                            } else {
+                                this.server.getLogger().debug("Got unexpected normal inventory action with incomplete crafting transaction from " + this.getName() + ", refusing to execute crafting");
+                                this.removeAllWindows(false);
+                                this.sendAllInventories();
+                                this.craftingTransaction = null;
                             }
-                            return;
-                        } else {
-                            this.server.getLogger().debug("Got unexpected normal inventory action with incomplete enchanting transaction from " + this.getName() + ", refusing to execute enchant " + transactionPacket.toString());
-                            this.removeAllWindows(false);
-                            this.sendAllInventories();
-                            this.enchantTransaction = null;
+                        } else if (this.enchantTransaction != null) {
+                            if (enchantTransaction.checkForEnchantPart(actions)) {
+                                for (InventoryAction action : actions) {
+                                    enchantTransaction.addAction(action);
+                                }
+                                return;
+                            } else {
+                                this.server.getLogger().debug("Got unexpected normal inventory action with incomplete enchanting transaction from " + this.getName() + ", refusing to execute enchant " + transactionPacket.toString());
+                                this.removeAllWindows(false);
+                                this.sendAllInventories();
+                                this.enchantTransaction = null;
+                            }
                         }
                     }
 
                     switch (transactionPacket.transactionType) {
                         case InventoryTransactionPacket.TYPE_NORMAL:
+                            if (this.isSpectator()) {
+                                this.sendAllInventories();
+                                break;
+                            }
                             InventoryTransaction transaction = new InventoryTransaction(this, actions);
 
                             if (!transaction.execute()) {
@@ -3208,6 +3209,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                             break packetswitch;
                         case InventoryTransactionPacket.TYPE_MISMATCH:
+                            if (this.isSpectator()) {
+                                this.sendAllInventories();
+                                break;
+                            }
+
                             if (transactionPacket.actions.length > 0) {
                                 this.server.getLogger().debug("Expected 0 actions for mismatch, got " + transactionPacket.actions.length + ", " + Arrays.toString(transactionPacket.actions));
                             }
@@ -3215,6 +3221,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                             break packetswitch;
                         case InventoryTransactionPacket.TYPE_USE_ITEM:
+                            if (this.isSpectator()) {
+                                this.sendAllInventories();
+                                break;
+                            }
+
                             UseItemData useItemData = (UseItemData) transactionPacket.transactionData;
 
                             BlockVector3 blockVector = useItemData.blockPos;
@@ -3266,6 +3277,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                                     this.level.sendBlocks(new Player[]{this}, new Block[]{target.getLevelBlockAtLayer(1), block.getLevelBlockAtLayer(1)}, UpdateBlockPacket.FLAG_NOGRAPHIC, 1);
                                     break packetswitch;
                                 case InventoryTransactionPacket.USE_ITEM_ACTION_BREAK_BLOCK:
+                                    if (this.isSpectator()) {
+                                        this.sendAllInventories();
+                                        break;
+                                    }
+
                                     if (!this.spawned || !this.isAlive()) {
                                         break packetswitch;
                                     }
