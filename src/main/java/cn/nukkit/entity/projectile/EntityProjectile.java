@@ -1,5 +1,6 @@
 package cn.nukkit.entity.projectile;
 
+import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockBell;
 import cn.nukkit.entity.Entity;
@@ -155,7 +156,8 @@ public abstract class EntityProjectile extends Entity {
 
             for (Entity entity : list) {
                 if (/*!entity.canCollideWith(this) or */
-                        (entity == this.shootingEntity && this.ticksLived < 5)
+                        (entity == this.shootingEntity && this.ticksLived < 5) ||
+                                entity instanceof Player && ((Player) entity).isSpectator()
                 ) {
                     continue;
                 }
