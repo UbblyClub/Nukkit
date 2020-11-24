@@ -196,8 +196,12 @@ public class EntityHuman extends EntityHumanType {
                 this.setSkin(newSkin);
             }
 
-            this.uuid = Utils.dataToUUID(String.valueOf(this.getId()).getBytes(StandardCharsets.UTF_8), this.getSkin()
-                    .getSkinData().data, this.getNameTag().getBytes(StandardCharsets.UTF_8));
+            if (skin != null) {
+                this.uuid = Utils.dataToUUID(String.valueOf(this.getId()).getBytes(StandardCharsets.UTF_8), this.getSkin()
+                        .getSkinData().data, this.getNameTag().getBytes(StandardCharsets.UTF_8));
+            } else {
+                this.uuid = Utils.dataToUUID(new byte[][]{String.valueOf(this.getId()).getBytes(StandardCharsets.UTF_8), this.getNameTag().getBytes(StandardCharsets.UTF_8)});
+            }
         }
 
         super.initEntity();
