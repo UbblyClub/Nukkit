@@ -3247,11 +3247,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     this.level.addChunkPacket(this.getChunkX(), this.getChunkZ(), packet);
                     break;
                 case ProtocolInfo.INVENTORY_TRANSACTION_PACKET:
-                    if (this.isSpectator()) {
-                        this.sendAllInventories();
-                        break;
-                    }
-
                     InventoryTransactionPacket transactionPacket = (InventoryTransactionPacket) packet;
 
                     List<InventoryAction> actions = new ArrayList<>();
@@ -3328,6 +3323,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                     switch (transactionPacket.transactionType) {
                         case InventoryTransactionPacket.TYPE_NORMAL:
+                            if (this.isSpectator()) {
+                                this.sendAllInventories();
+                                break;
+                            }
+
                             InventoryTransaction transaction = new InventoryTransaction(this, actions);
 
                             if (!transaction.execute()) {
@@ -3341,6 +3341,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                             break packetswitch;
                         case InventoryTransactionPacket.TYPE_MISMATCH:
+                            if (this.isSpectator()) {
+                                this.sendAllInventories();
+                                break;
+                            }
+
                             if (transactionPacket.actions.length > 0) {
                                 this.server.getLogger().debug("Expected 0 actions for mismatch, got " + transactionPacket.actions.length + ", " + Arrays.toString(transactionPacket.actions));
                             }
@@ -3363,6 +3368,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                             switch (type) {
                                 case InventoryTransactionPacket.USE_ITEM_ACTION_CLICK_BLOCK:
+                                    if (this.isSpectator()) {
+                                        this.sendAllInventories();
+                                        break;
+                                    }
                                     // Hack: Fix client spamming right clicks
                                     if (!server.doNotLimitInteractions && (lastRightClickPos != null && System.currentTimeMillis() - lastRightClickTime < 200.0 && blockVector.distanceSquared(lastRightClickPos) < 0.00001)) {
                                         return;
@@ -3423,6 +3432,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                                     }
                                     break packetswitch;
                                 case InventoryTransactionPacket.USE_ITEM_ACTION_BREAK_BLOCK:
+                                    if (this.isSpectator()) {
+                                        this.sendAllInventories();
+                                        break;
+                                    }
+
                                     if (!this.spawned || !this.isAlive()) {
                                         break packetswitch;
                                     }
@@ -3477,6 +3491,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                                     this.server.getPluginManager().callEvent(interactEvent);
 
+                                    if (isSpectator()) interactEvent.setCancelled();
+
                                     if (interactEvent.isCancelled()) {
                                         this.inventory.sendHeldItem(this);
                                         break packetswitch;
@@ -3510,6 +3526,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                             }
                             break;
                         case InventoryTransactionPacket.TYPE_USE_ITEM_ON_ENTITY:
+                            if (this.isSpectator()) {
+                                this.sendAllInventories();
+                                break;
+                            }
+
                             UseItemOnEntityData useItemOnEntityData = (UseItemOnEntityData) transactionPacket.transactionData;
 
                             Entity target = this.level.getEntity(useItemOnEntityData.entityRuntimeId);
