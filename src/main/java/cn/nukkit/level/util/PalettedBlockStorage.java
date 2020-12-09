@@ -21,7 +21,7 @@ public class PalettedBlockStorage {
     public PalettedBlockStorage(BitArrayVersion version) {
         this.bitArray = version.createPalette(SIZE);
         this.palette = new IntArrayList(16);
-        this.palette.add(0); // Air is at the start of every palette.
+        this.palette.add(GlobalBlockPalette.getOrCreateRuntimeId(0, 0)); // Air is at the start of every palette.
     }
 
     private PalettedBlockStorage(BitArray bitArray, IntList palette) {
