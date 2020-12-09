@@ -105,7 +105,7 @@ public class Anvil extends BaseLevelProvider {
     }
 
     @Override
-    public AsyncTask requestChunkTask(int x, int z) throws ChunkException {
+    public AsyncTask requestChunkTask(int protocol, int x, int z) throws ChunkException {
         Chunk chunk = (Chunk) this.getChunk(x, z, false);
         if (chunk == null) {
             throw new ChunkException("Invalid Chunk Set");
@@ -155,7 +155,7 @@ public class Anvil extends BaseLevelProvider {
         }
 //        stream.putByte((byte) count);  count is now sent in packet
         for (int i = 0; i < count; i++) {
-            sections[i].writeTo(stream);
+            sections[i].writeTo(protocol, stream);
         }
 //        for (byte height : chunk.getHeightMapArray()) {
 //            stream.putByte(height);
@@ -169,7 +169,7 @@ public class Anvil extends BaseLevelProvider {
         }
         stream.put(blockEntities);
 
-        this.getLevel().chunkRequestCallback(timestamp, x, z, count, stream.getBuffer());
+        this.getLevel().chunkRequestCallback(protocol, timestamp, x, z, count, stream.getBuffer());
 
         return null;
     }

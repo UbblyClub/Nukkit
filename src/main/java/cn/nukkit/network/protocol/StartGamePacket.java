@@ -25,6 +25,8 @@ public class StartGamePacket extends DataPacket {
         return NETWORK_ID;
     }
 
+    public String version;
+
     public long entityUniqueId;
     public long entityRuntimeId;
     public int playerGamemode;
@@ -148,5 +150,9 @@ public class StartGamePacket extends DataPacket {
         this.put(RuntimeItems.getRuntimeMapping().getItemDataPalette());
         this.putString(this.multiplayerCorrelationId);
         this.putBoolean(this.isInventoryServerAuthoritative);
+    }
+
+    public String getVersion() {
+        return version;
     }
 }

@@ -55,7 +55,7 @@ public class GlobalBlockPalette {
         }
     }
 
-    public static int getOrCreateRuntimeId(int id, int meta) {
+    public static int getOrCreateRuntimeId(int protocol, int id, int meta) {
         int legacyId = id << 6 | meta;
         int runtimeId = legacyToRuntimeId.get(legacyId);
         if (runtimeId == -1) {
@@ -70,7 +70,7 @@ public class GlobalBlockPalette {
         return runtimeId;
     }
 
-    public static int getOrCreateRuntimeId(int legacyId) throws NoSuchElementException {
-        return getOrCreateRuntimeId(legacyId >> 4, legacyId & 0xf);
+    public static int getOrCreateRuntimeId(int protocol, int legacyId) throws NoSuchElementException {
+        return getOrCreateRuntimeId(protocol, legacyId >> 4, legacyId & 0xf);
     }
 }

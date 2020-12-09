@@ -46,7 +46,7 @@ public interface ChunkSection {
 
     boolean isEmpty();
 
-    void writeTo(BinaryStream stream);
+    void writeTo(int protocol, BinaryStream stream);
 
     ChunkSection copy();
 }

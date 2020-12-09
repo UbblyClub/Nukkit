@@ -1064,18 +1064,23 @@ public class Level implements ChunkManager, Metadatable {
             updateBlockPacket.z = (int) b.z;
             updateBlockPacket.flags = first ? flags : UpdateBlockPacket.FLAG_NONE;
             updateBlockPacket.dataLayer = dataLayer;
-            int fullId;
-            if (b instanceof Block) {
-                fullId = ((Block) b).getFullId();
-            } else {
-                fullId = getFullBlock((int) b.x, (int) b.y, (int) b.z);
+
+            for (Player p : target) {
+                try {
+                    if (b instanceof Block) {
+                        updateBlockPacket.blockId = ((Block) b).getId();
+                        updateBlockPacket.blockData = ((Block) b).getDamage();
+                        updateBlockPacket.blockRuntimeId = GlobalBlockPalette.getOrCreateRuntimeId(p.protocol, ((Block) b).getFullId());
+                    } else {
+                        updateBlockPacket.blockRuntimeId = GlobalBlockPalette.getOrCreateRuntimeId(p.protocol, getFullBlock((int) b.x, (int) b.y, (int) b.z));
+                    }
+                } catch (NoSuchElementException e) {
+                    throw new IllegalStateException("Unable to create BlockUpdatePacket at (" + b.x + ", " + b.y + ", " + b.z + ") in " + getName() + " for player " + p.getName() + " with protocol " + p.protocol);
+                }
+
+                p.batchDataPacket(updateBlockPacket);
             }
-            try {
-                updateBlockPacket.blockRuntimeId = GlobalBlockPalette.getOrCreateRuntimeId(fullId);
-            } catch (NoSuchElementException e) {
-                throw new IllegalStateException("Unable to create BlockUpdatePacket at (" +
-                        b.x + ", " + b.y + ", " + b.z + ") in " + getName(), e);
-            }
+
             packets[packetIndex++] = updateBlockPacket;
         }
         this.server.batchPackets(target, packets);
@@ -2214,7 +2219,7 @@ public class Level implements ChunkManager, Metadatable {
         }
 
         if (playSound) {
-            this.addLevelSoundEvent(hand, LevelSoundEventPacket.SOUND_PLACE, GlobalBlockPalette.getOrCreateRuntimeId(hand.getId(), hand.getDamage()));
+            this.addLevelSoundEvent(hand, LevelSoundEventPacket.SOUND_PLACE, GlobalBlockPalette.getOrCreateRuntimeId(ProtocolInfo.CURRENT_PROTOCOL, hand.getId(), hand.getDamage()));
         }
 
         if (item.getCount() <= 0) {
@@ -2666,6 +2671,9 @@ public class Level implements ChunkManager, Metadatable {
 
     private void processChunkRequest() {
         this.timings.syncChunkSendTimer.startTiming();
+
+        int protocol = 0;
+
         for (long index : this.chunkSendQueue.keySet()) {
             if (this.chunkSendTasks.contains(index)) {
                 continue;
@@ -2682,7 +2690,7 @@ public class Level implements ChunkManager, Metadatable {
                 }
             }
             this.timings.syncChunkSendPrepareTimer.startTiming();
-            AsyncTask task = this.provider.requestChunkTask(x, z);
+            AsyncTask task = this.provider.requestChunkTask(protocol, x, z);
             if (task != null) {
                 this.server.getScheduler().scheduleAsyncTask(task);
             }
@@ -2691,12 +2699,12 @@ public class Level implements ChunkManager, Metadatable {
         this.timings.syncChunkSendTimer.stopTiming();
     }
 
-    public void chunkRequestCallback(long timestamp, int x, int z, int subChunkCount, byte[] payload) {
+    public void chunkRequestCallback(int protocol, long timestamp, int x, int z, int subChunkCount, byte[] payload) {
         this.timings.syncChunkSendTimer.startTiming();
         long index = Level.chunkHash(x, z);
 
         if (this.cacheChunks) {
-            BatchPacket data = Player.getChunkCacheFromData(x, z, subChunkCount, payload);
+            BatchPacket data = Player.getChunkCacheFromData(protocol, x, z, subChunkCount, payload);
             BaseFullChunk chunk = getChunk(x, z, false);
             if (chunk != null && chunk.getChanges() <= timestamp) {
                 chunk.setChunkPacket(data);

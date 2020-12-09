@@ -10,13 +10,21 @@ import java.util.List;
  */
 public interface ProtocolInfo {
 
+    @SuppressWarnings("UnnecessaryBoxing")
+    int PROTOCOL_419 = Integer.valueOf("419"); // DO NOT REMOVE BOXING
+
+    @SuppressWarnings("UnnecessaryBoxing")
+    int PROTOCOL_422 = Integer.valueOf("422");
+
+    @SuppressWarnings("UnnecessaryBoxing")
+    int PROTOCOL_423 = Integer.valueOf("423");
+
     /**
      * Actual Minecraft: PE protocol version
      */
-    @SuppressWarnings("UnnecessaryBoxing")
-    int CURRENT_PROTOCOL = Integer.valueOf("422"); // DO NOT REMOVE BOXING
+    int CURRENT_PROTOCOL = PROTOCOL_419;
 
-    List<Integer> SUPPORTED_PROTOCOLS = Ints.asList(CURRENT_PROTOCOL);
+    List<Integer> SUPPORTED_PROTOCOLS = Ints.asList(PROTOCOL_419, PROTOCOL_422, PROTOCOL_423);
 
     String MINECRAFT_VERSION = "v1.16.200";
     String MINECRAFT_VERSION_NETWORK = "1.16.200";

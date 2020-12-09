@@ -256,6 +256,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
     private int timeSinceRest;
 
+    public int protocol = 999;
+    public int raknetProtocol;
+
+    protected String version;
+
     public int getStartActionTick() {
         return startAction;
     }
@@ -637,6 +642,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         super.initEntity();
 
         this.addDefaultWindows();
+    }
+
+    public int getProtocol() {
+        return this.protocol;
     }
 
     public boolean isPlayer() {
@@ -1027,6 +1036,12 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     public boolean dataPacket(DataPacket packet) {
         if (!this.connected) {
             return false;
+        }
+
+        packet.protocol = this.protocol;
+
+        if (packet instanceof StartGamePacket) {
+            ((StartGamePacket) packet).version = this.version;
         }
 
         try (Timing ignored = Timings.getSendDataPacketTiming(packet)) {
@@ -2053,6 +2068,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             return;
         }
 
+        packet.protocol = this.protocol;
+
         try (Timing timing = Timings.getReceiveDataPacketTiming(packet)) {
             DataPacketReceiveEvent ev = new DataPacketReceiveEvent(this, packet);
             this.server.getPluginManager().callEvent(ev);
@@ -2078,6 +2095,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                     LoginPacket loginPacket = (LoginPacket) packet;
 
+                    this.protocol = loginPacket.getProtocol();
+
                     String message;
                     if (!ProtocolInfo.SUPPORTED_PROTOCOLS.contains(loginPacket.getProtocol())) {
                         if (loginPacket.getProtocol() < ProtocolInfo.CURRENT_PROTOCOL) {
@@ -2089,6 +2108,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                             this.sendPlayStatus(PlayStatusPacket.LOGIN_FAILED_SERVER);
                         }
+
                         if (((LoginPacket) packet).protocol < 137) {
                             DisconnectPacket disconnectPacket = new DisconnectPacket();
                             disconnectPacket.message = message;
@@ -2117,6 +2137,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     if (this.server.getOnlinePlayers().size() >= this.server.getMaxPlayers() && this.kick(PlayerKickEvent.Reason.SERVER_FULL, "disconnectionScreen.serverFull", false)) {
                         break;
                     }
+
+                    this.version = loginChainData.getGameVersion();
+
+                    getServer().getLogger().debug("Name: " + this.username + " Protocol: " + this.protocol + " Version: " + this.version);
 
                     this.randomClientId = loginPacket.clientId;
 
@@ -4796,12 +4820,13 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     }
 
 
-    public static BatchPacket getChunkCacheFromData(int chunkX, int chunkZ, int subChunkCount, byte[] payload) {
+    public static BatchPacket getChunkCacheFromData(int protocol, int chunkX, int chunkZ, int subChunkCount, byte[] payload) {
         LevelChunkPacket pk = new LevelChunkPacket();
         pk.chunkX = chunkX;
         pk.chunkZ = chunkZ;
         pk.subChunkCount = subChunkCount;
         pk.data = payload;
+        pk.protocol = protocol;
         pk.encode();
 
         BatchPacket batch = new BatchPacket();
@@ -5141,5 +5166,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
     public void setTimeSinceRest(int timeSinceRest) {
         this.timeSinceRest = timeSinceRest;
+    }
+
+    public String getVersion() {
+        return this.version;
     }
 }

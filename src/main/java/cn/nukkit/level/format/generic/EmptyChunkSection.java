@@ -134,11 +134,11 @@ public class EmptyChunkSection implements ChunkSection {
     }
 
     @Override
-    public void writeTo(BinaryStream stream) {
+    public void writeTo(int protocol, BinaryStream stream) {
         stream.putByte((byte) 8);
         stream.putByte((byte) 2);
-        EMPTY_STORAGE.writeTo(stream);
-        EMPTY_STORAGE.writeTo(stream);
+        EMPTY_STORAGE.writeTo(protocol, stream);
+        EMPTY_STORAGE.writeTo(protocol, stream);
     }
 
     @Override
