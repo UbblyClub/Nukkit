@@ -1021,9 +1021,27 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         return true;
     }
 
-    @Deprecated
     public boolean batchDataPacket(DataPacket packet) {
-        return this.dataPacket(packet);
+        if (packet instanceof BatchPacket) {
+            return this.directDataPacket(packet); // We don't want to batch a batched packet
+        }
+
+        if (!this.connected) {
+            return false;
+        }
+
+        packet.protocol = this.protocol;
+
+        try (Timing ignore = Timings.getSendDataPacketTiming(packet)) {
+            DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
+            this.server.getPluginManager().callEvent(ev);
+            if (ev.isCancelled()) {
+                return false;
+            }
+
+            this.packetQueue.offer(packet);
+        }
+        return true;
     }
 
     /**
