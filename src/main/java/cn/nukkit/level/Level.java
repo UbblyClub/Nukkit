@@ -1078,7 +1078,7 @@ public class Level implements ChunkManager, Metadatable {
                     throw new IllegalStateException("Unable to create BlockUpdatePacket at (" + b.x + ", " + b.y + ", " + b.z + ") in " + getName() + " for player " + p.getName() + " with protocol " + p.protocol);
                 }
 
-                p.batchDataPacket(updateBlockPacket);
+                p.dataPacket(updateBlockPacket);
             }
 
             packets[packetIndex++] = updateBlockPacket;
