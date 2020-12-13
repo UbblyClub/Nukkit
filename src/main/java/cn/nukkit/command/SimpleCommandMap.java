@@ -212,10 +212,10 @@ public class SimpleCommandMap implements CommandMap {
         int start = 0;
 
         for (int i = 0; i < sb.length(); i++) {
-            if (sb.charAt(i) == '\\') {
-                sb.deleteCharAt(i);
-                continue;
-            }
+//            if (sb.charAt(i) == '\\') {
+//                sb.deleteCharAt(i);
+//                continue;
+//            }
 
             if (sb.charAt(i) == ' ' && notQuoted) {
                 String arg = sb.substring(start, i);
