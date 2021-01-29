@@ -183,6 +183,7 @@
                             <Main-Class>cn.nukkit.Nukkit</Main-Class>
                         </manifestEntries>
                     </archive>
+                    <outputDirectory>../Server</outputDirectory>
                 </configuration>
             </plugin>
             <plugin>
