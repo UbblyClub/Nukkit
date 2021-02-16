@@ -208,8 +208,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
     protected boolean checkMovement = true;
 
-    private final Queue<DataPacket> packetQueue = new ConcurrentLinkedDeque<>();
-
     private PermissibleBase perm = null;
 
     private int exp = 0;
@@ -1021,27 +1019,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         return true;
     }
 
+    @Deprecated
     public boolean batchDataPacket(DataPacket packet) {
-        if (packet instanceof BatchPacket) {
-            return this.directDataPacket(packet); // We don't want to batch a batched packet
-        }
-
-        if (!this.connected) {
-            return false;
-        }
-
-        packet.protocol = this.protocol;
-
-        try (Timing ignore = Timings.getSendDataPacketTiming(packet)) {
-            DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
-            this.server.getPluginManager().callEvent(ev);
-            if (ev.isCancelled()) {
-                return false;
-            }
-
-            this.packetQueue.offer(packet);
-        }
-        return true;
+        return this.dataPacket(packet);
     }
 
     /**
@@ -1069,8 +1049,13 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                 return false;
             }
 
+            if (log.isTraceEnabled() && !server.isIgnoredPacket(packet.getClass())) {
+                log.trace("Outbound {}: {}", this.getName(), packet);
+            }
+
             this.interfaz.putPacket(this, packet, false, true);
         }
+
         return true;
     }
 
@@ -1816,17 +1801,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     }
 
     public void checkNetwork() {
-        if (!this.packetQueue.isEmpty()) {
-            Player[] pArr = new Player[]{this};
-            List<DataPacket> toBatch = new ArrayList<>();
-            DataPacket packet;
-            while ((packet = this.packetQueue.poll()) != null) {
-                toBatch.add(packet);
-            }
-            DataPacket[] arr = toBatch.toArray(new DataPacket[0]);
-            this.server.batchPackets(pArr, arr, false);
-        }
-
         if (!this.isOnline()) {
             return;
         }
@@ -1838,7 +1812,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         if (!this.loadQueue.isEmpty() || !this.spawned) {
             this.sendNextChunk();
         }
-
     }
 
     public boolean canInteract(Vector3 pos, double maxDistance) {
@@ -2090,7 +2063,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
         packet.protocol = this.protocol;
 
-        try (Timing timing = Timings.getReceiveDataPacketTiming(packet)) {
+        try (Timing ignored = Timings.getReceiveDataPacketTiming(packet)) {
             DataPacketReceiveEvent ev = new DataPacketReceiveEvent(this, packet);
             this.server.getPluginManager().callEvent(ev);
             if (ev.isCancelled()) {
@@ -2210,33 +2183,33 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                     Player playerInstance = this;
                     this.preLoginEventTask = new AsyncTask() {
-
-                        private PlayerAsyncPreLoginEvent e;
+                        private PlayerAsyncPreLoginEvent event;
 
                         @Override
                         public void onRun() {
-                            e = new PlayerAsyncPreLoginEvent(username, uuid, loginChainData.getXUID(), Player.this.getAddress(), Player.this.getPort());
-                            server.getPluginManager().callEvent(e);
+                            this.event = new PlayerAsyncPreLoginEvent(username, uuid, loginChainData, playerInstance.getSkin(), playerInstance.getAddress(), playerInstance.getPort());
+                            server.getPluginManager().callEvent(this.event);
                         }
 
                         @Override
                         public void onCompletion(Server server) {
-                            if (!playerInstance.closed) {
-                                if (e.getLoginResult() == LoginResult.KICK) {
-                                    playerInstance.close(e.getKickMessage(), e.getKickMessage());
-                                } else if (playerInstance.shouldLogin) {
-                                    playerInstance.completeLoginSequence();
+                            if (playerInstance.closed) {
+                                return;
+                            }
 
-                                    for (Consumer<Server> action : e.getScheduledActions()) {
-                                        action.accept(server);
-                                    }
+                            if (this.event.getLoginResult() == LoginResult.KICK) {
+                                playerInstance.close(this.event.getKickMessage(), this.event.getKickMessage());
+                            } else if (playerInstance.shouldLogin) {
+                                playerInstance.setSkin(this.event.getSkin());
+                                playerInstance.completeLoginSequence();
+                                for (Consumer<Server> action : this.event.getScheduledActions()) {
+                                    action.accept(server);
                                 }
                             }
                         }
                     };
 
                     this.server.getScheduler().scheduleAsyncTask(this.preLoginEventTask);
-
                     this.processLogin();
                     break;
                 case ProtocolInfo.RESOURCE_PACK_CLIENT_RESPONSE_PACKET:
@@ -2318,7 +2291,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                     break;
                 case ProtocolInfo.PACKET_VIOLATION_WARNING_PACKET:
-                    log.warn("Received packet violation warning: " + packet.toString());
+                    log.warn("Violation warning from {}: {}", this.getName(), packet.toString());
                     break;
                 case ProtocolInfo.EMOTE_PACKET:
                     for (Player viewer : this.getViewers().values()) {
